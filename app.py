@@ -1,11 +1,10 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator, griddata
 
 app = Flask(__name__)
-CORS(app)
-
+CORS(app, origins="*", allow_headers="*", supports_credentials=True)
 
 def extract_lon_lat_value(data: dict, keys: tuple = ("lat", "lon", "value")):
     return (np.array([x[key] for x in data]) for key in keys)
@@ -56,7 +55,8 @@ def points(data):
 def interpolate_to_points():
     data = request.json
     result = points(data)
-    return jsonify(result)
+    response = jsonify(result)
+    return response
 
 
 @app.route('/interpolate_to_grid', methods=['POST'])

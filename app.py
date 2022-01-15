@@ -6,7 +6,7 @@ from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator, gridd
 app = Flask(__name__)
 CORS(app, origins="*", allow_headers="*", supports_credentials=True)
 
-def extract_lon_lat_value(data: dict, keys: tuple = ("lat", "lon", "value")):
+def extract_lon_lat_value(data: dict, keys: tuple = ("lon", "lat", "value")):
     return (np.array([x[key] for x in data]) for key in keys)
 
 
@@ -34,7 +34,7 @@ def grid(data):
 
 def points(data):
     lon_src, lat_src, value_src = extract_lon_lat_value(data['src'])
-    lon_dst, lat_dst = extract_lon_lat_value(data['dst'], ("lat", "lon"))
+    lon_dst, lat_dst = extract_lon_lat_value(data['dst'], ("lon", "lat"))
 
     points_src = np.vstack((lon_src, lat_src)).T
     points_dst = np.vstack((lon_dst, lat_dst)).T

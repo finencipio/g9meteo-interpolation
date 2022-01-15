@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator, griddata
 
 app = Flask(__name__)
+CORS(app)
 
 
 def extract_lon_lat_value(data: dict, keys: tuple = ("lat", "lon", "value")):

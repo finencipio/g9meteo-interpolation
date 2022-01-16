@@ -12,7 +12,7 @@ def extract_lon_lat_value(data: dict, keys: tuple = ("lon", "lat", "value")):
 
 def grid(data):
     lon, lat, value = extract_lon_lat_value(data)
-    data_to_interpolate = list(zip(lat, lon))
+    data_to_interpolate = list(zip(lon, lat))
 
     X, Y = np.linspace(13, 20, int(7 / 0.2)), np.linspace(42, 47, int(5 / 0.2))
 
@@ -50,6 +50,49 @@ def points(data):
 
     return result
 
+def calc_error(data):
+    result = {}
+    for_point_int = {'src': data['era5'], 'dst': data['meteo']}
+
+    lon_src, lat_src, value_src = extract_lon_lat_value(for_point_int['src'])
+    lon_dst, lat_dst, value_dst = extract_lon_lat_value(for_point_int['dst'])
+
+    points_src = np.vstack((lon_src, lat_src)).T
+    points_dst = np.vstack((lon_dst, lat_dst)).T
+
+    int_values = LinearNDInterpolator(points_src, value_src)(
+        points_dst)  # interpolate_to_points(points_src, value_src, points_dst, 'linear')
+    int_values_2 = NearestNDInterpolator(points_src, value_src)(points_dst)
+
+    int_values = np.where(np.isnan(int_values), int_values_2, int_values) - value_dst
+
+    error_result = []
+    for i in range(lon_dst.shape[0]):
+        error_result.append({"lon": lon_dst[i], "lat": lat_dst[i], "value": int_values[i]})
+
+    result['error'] = error_result
+
+    data_to_interpolate = list(zip(lon_dst, lat_dst))
+
+    X, Y = np.linspace(13, 20, int(7 / 0.2)), np.linspace(42, 47, int(5 / 0.2))
+
+    X, Y = np.meshgrid(X, Y)
+    # interp = LinearNDInterpolator(data_to_interpolate, value)
+    img = griddata(data_to_interpolate, int_values, (X, Y), method='linear')  # interp(X, Y)
+
+    img_n = griddata(data_to_interpolate, int_values, (X, Y), method='nearest')
+
+    img = np.where(np.isnan(img), img_n, img)
+
+    grid_result = []
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+            grid_result.append({"lon": X[i, j], "lat": Y[i, j], "value": img[i, j]})
+
+    result['error_grid'] = grid_result
+
+    return result
+
 
 @app.route('/interpolate_to_points', methods=['POST'])
 def interpolate_to_points():
@@ -63,4 +106,11 @@ def interpolate_to_points():
 def interpolate_to_grid():
     data = request.json
     result = grid(data['src'])
+    return jsonify(result)
+
+
+@app.route('/calc_error', methods=['POST'])
+def calculate_era5_int_and_error_grid():
+    data = request.json
+    result = calc_error(data)
     return jsonify(result)
